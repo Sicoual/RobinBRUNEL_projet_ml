@@ -1,157 +1,119 @@
 import streamlit as st
-from sklearn.metrics import classification_report, confusion_matrix, mean_squared_error, r2_score
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
-import json
+import numpy as np
 import os
+from sklearn.ensemble import RandomForestRegressor
 
-def save_report_locally(report_dict, filename="models/rapport_classification.json"):
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(report_dict, f, ensure_ascii=False, indent=4)
-
-def save_cm_locally(cm_df, filename="models/matrice_confusion.csv"):
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    cm_df.to_csv(filename, index=True)
+def impute_missing_columns(df, feature_names, imputers):
+    """
+    Impute missing columns in df using provided imputers dict {col: model}.
+    If a column is missing and no imputer available, fill with 0 or mean fallback.
+    """
+    missing = set(feature_names) - set(df.columns)
+    for col in missing:
+        if col in imputers:
+            # Imputation via modèle prédictif
+            # On prédit la colonne manquante à partir des autres colonnes existantes
+            features_for_imputation = [f for f in feature_names if f != col and f in df.columns]
+            if len(features_for_imputation) == 0:
+                # Pas d’info pour imputer, on remplit à 0
+                df[col] = 0.0
+            else:
+                X_imp = df[features_for_imputation]
+                # Remplir les NaN dans X_imp par 0 (ou moyenne si stockée)
+                X_imp = X_imp.fillna(0)
+                imputer = imputers[col]
+                df[col] = imputer.predict(X_imp)
+        else:
+            # Pas d’imputer, on remplit avec la moyenne stockée sinon 0
+            mean_value = st.session_state.get("feature_means", {}).get(col, 0.0)
+            df[col] = mean_value
+    return df
 
 def app():
-    st.header("📊 Évaluation du modèle")
+    st.header("🍷 Évaluation de nouveaux vins")
 
-    if 'model' not in st.session_state:
-        st.warning("⚠️ Veuillez entraîner un modèle dans l'onglet Modélisation avant d’évaluer.")
+    if 'models' not in st.session_state or 'feature_names' not in st.session_state:
+        st.warning("Aucun modèle entraîné. Veuillez d'abord entraîner un modèle.")
         return
 
-    model = st.session_state['model']
-    X_test = st.session_state['X_test']
-    y_test = st.session_state['y_test']
-    le = st.session_state.get('label_encoder', None)
-    algo_name = st.session_state.get('algo_name', "Modèle")
+    if "manual_entries" not in st.session_state:
+        st.session_state.manual_entries = []
 
-    y_pred = model.predict(X_test)
+    st.subheader("🔢 Entrée des caractéristiques du vin")
 
-    # Classification ou régression
-    if le is not None:
-        y_test_labels = le.inverse_transform(y_test)
-        y_pred_labels = le.inverse_transform(y_pred)
+    mode = st.radio("Choisir le mode de saisie :", ["📝 Manuel", "📁 CSV"])
+
+    if mode == "📝 Manuel":
+        input_data = {}
+        for feature in st.session_state['feature_names']:
+            val = st.number_input(f"{feature}", value=0.0, key=feature)
+            input_data[feature] = val
+
+        if st.button("➕ Ajouter ce vin à la liste"):
+            st.session_state.manual_entries.append(input_data.copy())
+            st.success("Vin ajouté. Vous pouvez en ajouter un autre.")
+
+        if st.session_state.manual_entries:
+            df_manual = pd.DataFrame(st.session_state.manual_entries)
+            st.write("Vins ajoutés :", df_manual)
+            X_input = df_manual
+        else:
+            X_input = pd.DataFrame()
+
     else:
-        y_test_labels = y_test
-        y_pred_labels = y_pred
+        uploaded_file = st.file_uploader("📁 Téléversez un fichier CSV", type=["csv"])
+        if uploaded_file:
+            df_uploaded = pd.read_csv(uploaded_file)
+            st.write("Aperçu des données importées :", df_uploaded.head())
 
-    # Classification
-    if le is not None:
-        report = classification_report(y_test_labels, y_pred_labels, output_dict=True)
-        df_report = pd.DataFrame(report).transpose()
+            # Imputation intelligente des colonnes manquantes
+            imputers = st.session_state.get("imputers", {})
+            df_filled = impute_missing_columns(df_uploaded, st.session_state['feature_names'], imputers)
+            
+            X_input = df_filled[st.session_state['feature_names']]
+        else:
+            X_input = pd.DataFrame()
 
-        st.subheader(f"Rapport de classification - {algo_name}")
-        st.dataframe(df_report.style.apply(
-            lambda row: ['font-weight: bold' if row.name in ['accuracy', 'macro avg', 'weighted avg'] else '' for _ in row],
-            axis=1))
+    if not X_input.empty:
+        st.subheader("🤖 Prédictions")
 
-        # Sauvegarde locale
-        save_report_locally(report)
+        for model_name in st.session_state['algo_names']:
+            model = st.session_state['models'][model_name]
+            st.write(f"### Modèle : {model_name}")
 
-        # Téléchargement
-        report_json = json.dumps(report, indent=4, ensure_ascii=False)
-        st.download_button(
-            label="📥 Télécharger le rapport de classification (JSON)",
-            data=report_json,
-            file_name="rapport_classification.json",
-            mime="application/json"
-        )
+            y_pred = model.predict(X_input)
 
-        # Matrice de confusion
-        cm = confusion_matrix(y_test_labels, y_pred_labels, labels=le.classes_)
-        cm_df = pd.DataFrame(cm, index=le.classes_, columns=le.classes_)
-
-        st.subheader("Matrice de confusion")
-        fig, ax = plt.subplots(figsize=(7, 6))
-        sns.heatmap(cm_df, annot=True, fmt="d", cmap="Blues", ax=ax)
-        ax.set_xlabel("Prédictions")
-        ax.set_ylabel("Vraies étiquettes")
-        plt.tight_layout()
-        st.pyplot(fig)
-
-        # Sauvegarde locale matrice confusion
-        save_cm_locally(cm_df)
-
-        # Téléchargement matrice confusion CSV
-        csv_data = cm_df.to_csv().encode('utf-8')
-        st.download_button(
-            label="📥 Télécharger la matrice de confusion (CSV)",
-            data=csv_data,
-            file_name="matrice_confusion.csv",
-            mime="text/csv"
-        )
-
-    # Régression
-    else:
-        st.subheader("Évaluation Régression")
-        mse = mean_squared_error(y_test_labels, y_pred_labels)
-        r2 = r2_score(y_test_labels, y_pred_labels)
-        st.write(f"Erreur quadratique moyenne (MSE): {mse:.4f}")
-        st.write(f"Coefficient de détermination (R²): {r2:.4f}")
-    
-    # ---------------------------------------------------------
-    # 🔍 PRÉDICTION INTERACTIVE + FEEDBACK UTILISATEUR
-    # ---------------------------------------------------------
-    st.markdown("---")
-    st.subheader("🍷 Tester le modèle avec vos propres données")
-
-    if 'feature_names' in st.session_state:
-        with st.form("formulaire_prediction_perso"):
-            inputs = {}
-            for col in st.session_state['feature_names']:
-                default_val = float(X_test[col].mean()) if col in X_test.columns else 0.0
-                inputs[col] = st.number_input(f"{col}", value=default_val, format="%.4f")
-            valider = st.form_submit_button("Prédire")
-
-        if valider:
-            # Création DataFrame à prédire
-            input_df = pd.DataFrame([inputs])
-            input_df_encoded = input_df.copy()
-
-            # Gestion des colonnes manquantes (encodage)
-            if set(X_test.columns) != set(input_df_encoded.columns):
-                input_df_encoded = input_df_encoded.reindex(columns=X_test.columns, fill_value=0)
-
-            y_pred_interactif = model.predict(input_df_encoded)[0]
-
-            if le:
-                prediction_humaine = le.inverse_transform([y_pred_interactif])[0]
-                st.success(f"✅ Le modèle prédit : **{prediction_humaine}**")
-            else:
-                prediction_humaine = y_pred_interactif
-                st.success(f"✅ Prédiction numérique : **{prediction_humaine:.4f}**")
-
-            # Probabilités si possible
             if hasattr(model, "predict_proba"):
-                proba = model.predict_proba(input_df_encoded)[0]
-                df_proba = pd.DataFrame([proba], columns=le.classes_)
-                st.write("🔢 Probabilités :")
-                st.dataframe(df_proba.style.format("{:.2%}"))
+                proba = model.predict_proba(X_input)
+                df_proba = pd.DataFrame(proba, columns=st.session_state.get('class_names', []))
+                df_result = X_input.copy()
+                df_result["Prédiction"] = y_pred
+                df_result = pd.concat([df_result, df_proba], axis=1)
+                st.dataframe(df_result.style.format("{:.2f}"))
+            else:
+                df_result = X_input.copy()
+                df_result["Prédiction"] = y_pred
+                st.dataframe(df_result)
 
-            # Feedback utilisateur
-            st.markdown("### 🤖 Est-ce correct selon vous ?")
-            avis = st.radio("Votre avis :", ["Oui", "Non"], key="feedback_choice")
+        # Ajout au dataset vin.csv
+        if st.checkbox("📥 Ajouter ces vins au dataset d'entraînement ?"):
+            if "label_encoder" in st.session_state:
+                y_labels = model.predict(X_input)
+                label_inv = st.session_state["label_encoder"].inverse_transform(y_labels)
+                X_input["target"] = label_inv
+            else:
+                X_input["target"] = y_pred
 
-            correction = None
-            if avis == "Non" and le:
-                correction = st.selectbox("Quelle est la vraie classe ?", le.classes_)
+            csv_path = "data/vin.csv"
+            if os.path.exists(csv_path):
+                df_old = pd.read_csv(csv_path)
+                final_df = pd.concat([df_old, X_input], ignore_index=True)
+            else:
+                final_df = X_input
 
-            if st.button("Envoyer feedback"):
-                feedback = {
-                    **inputs,
-                    "prediction": prediction_humaine,
-                    "correct": avis,
-                    "true_label": correction if correction else prediction_humaine
-                }
-                feedback_path = "models/feedback.csv"
-                try:
-                    df_old = pd.read_csv(feedback_path)
-                    df_new = pd.concat([df_old, pd.DataFrame([feedback])], ignore_index=True)
-                except FileNotFoundError:
-                    df_new = pd.DataFrame([feedback])
+            final_df.to_csv(csv_path, index=False)
+            st.success("✅ Données ajoutées à vin.csv")
 
-                df_new.to_csv(feedback_path, index=False)
-                st.success("💾 Feedback enregistré dans `models/feedback.csv`.")
+            if mode == "📝 Manuel":
+                st.session_state.manual_entries = []

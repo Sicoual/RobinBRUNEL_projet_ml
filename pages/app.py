@@ -1,6 +1,6 @@
 import streamlit as st
 import exploration
-import pretraitement
+import traitement
 import entrainement
 import evaluation
 
@@ -33,7 +33,7 @@ if page == "Accueil":
 elif page == "Exploration":
     exploration.app()
 elif page == "Prétraitement":
-    pretraitement.app()
+    traitement.app()
 elif page == "Entrainement":
     entrainement.app()
 elif page == "Évaluation":
