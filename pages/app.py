@@ -1,7 +1,7 @@
 import streamlit as st
 import exploration
 import pretraitement
-import modelisation
+import entrainement
 import evaluation
 
 # Configuration de la page
@@ -13,29 +13,29 @@ st.title("🍷 Application Machine Learning - Vin")
 # Sidebar pour la navigation
 st.sidebar.markdown("## 📚 Navigation")
 page = st.sidebar.radio("Choisissez une page :", [
-    "🏠 Accueil",
+    "Accueil",
     "Exploration",
     "Prétraitement",
-    "Modélisation",
+    "Entrainement",
     "Évaluation"
 ])
 
 # Affichage selon la page choisie
-if page == "🏠 Accueil":
+if page == "Accueil":
     st.subheader("Bienvenue sur l'application d'analyse de vin 🍇")
     st.markdown("""
     Cette application vous permet d'explorer un pipeline complet de Machine Learning :
     - Exploration des données
     - Prétraitement
-    - Modélisation
+    - Entrainement
     - Évaluation
     """)
 elif page == "Exploration":
     exploration.app()
 elif page == "Prétraitement":
     pretraitement.app()
-elif page == "Modélisation":
-    modelisation.app()
+elif page == "Entrainement":
+    entrainement.app()
 elif page == "Évaluation":
     evaluation.app()
 else:
