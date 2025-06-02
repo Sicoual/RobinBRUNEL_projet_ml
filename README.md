@@ -27,6 +27,7 @@ RobinBRUNEL_projet_ml/
 ├── requirements.txt               # Dépendances du projet
 ├── README.md                      # Documentation utilisateur
 └── .gitignore                     # Exclusion Git
+```
 
 ## Contributeurs
 - Robin BRUNEL
