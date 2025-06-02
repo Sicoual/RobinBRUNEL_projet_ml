@@ -19,9 +19,8 @@ RobinBRUNEL_projet_ml/
 │   ├── Exploration.py           # Analyse exploratoire
 │   ├── Prétraitement.py         # Nettoyage des données
 │   ├── Modélisation.py          # Modélisation ML
-│   └── Évaluation.py            # Évaluation du modèle
-│
-├── app.py                         # Point d’entrée Streamlit
+│   ├── Évaluation.py            # Évaluation du modèle
+│   └── app-ml-vin.py            # Point d’entrée Streamlit
 ├── setup.py                       # Script d’installation (exécution une seule fois)
 ├── run.py                         # Script de lancement de l'aplication (exécution à chaque lancement aprés l'installation)
 ├── requirements.txt               # Dépendances du projet
@@ -35,11 +34,11 @@ RobinBRUNEL_projet_ml/
 ## 🚀 Lancer l'application
 
 ### 🔧 1. Installation 
-Exécute ce script avec Python cela installeras toute les dépendance (un seule fois) :
+Exécute ce script avec Python cela installeras toute les dépendance et l'environnement virtuel  (un seule fois) :
 ```bash
 python setup.py
 
-### 🔧 2. Lancement  
+### 🔧 2. Lancement  de steamlit
 streamlit run app-ml-vin/app.py
 
 
