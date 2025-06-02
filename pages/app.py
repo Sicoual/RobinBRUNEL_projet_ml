@@ -4,19 +4,23 @@ import pretraitement
 import modelisation
 import evaluation
 
-st.set_page_config(page_title="App ML Vin", layout="wide")
+# Configuration de la page
+st.set_page_config(page_title="🍷 Application Machine Learning - Vin", layout="wide")
 
+# Titre général
 st.title("🍷 Application Machine Learning - Vin")
 
+# Sidebar pour la navigation
 st.sidebar.markdown("## 📚 Navigation")
 page = st.sidebar.radio("Choisissez une page :", [
     "🏠 Accueil",
-    "1️⃣ Exploration",
-    "2️⃣ Prétraitement",
-    "3️⃣ Modélisation",
-    "4️⃣ Évaluation"
+    "Exploration",
+    "Prétraitement",
+    "Modélisation",
+    "Évaluation"
 ])
 
+# Affichage selon la page choisie
 if page == "🏠 Accueil":
     st.subheader("Bienvenue sur l'application d'analyse de vin 🍇")
     st.markdown("""
@@ -26,11 +30,13 @@ if page == "🏠 Accueil":
     - Modélisation
     - Évaluation
     """)
-elif page == "1️⃣ Exploration":
+elif page == "Exploration":
     exploration.app()
-elif page == "2️⃣ Prétraitement":
+elif page == "Prétraitement":
     pretraitement.app()
-elif page == "3️⃣ Modélisation":
+elif page == "Modélisation":
     modelisation.app()
-elif page == "4️⃣ Évaluation":
+elif page == "Évaluation":
     evaluation.app()
+else:
+    st.error("Page inconnue. Veuillez sélectionner une page valide depuis la sidebar.")
