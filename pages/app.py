@@ -15,7 +15,7 @@ st.sidebar.markdown("## 📚 Navigation")
 page = st.sidebar.radio("Choisissez une page :", [
     "Accueil",
     "Exploration",
-    "Prétraitement",
+    "Traitement",
     "Entrainement",
     "Évaluation"
 ])
@@ -26,13 +26,13 @@ if page == "Accueil":
     st.markdown("""
     Cette application vous permet d'explorer un pipeline complet de Machine Learning :
     - Exploration des données
-    - Prétraitement
+    - Traitement
     - Entrainement
     - Évaluation
     """)
 elif page == "Exploration":
     exploration.app()
-elif page == "Prétraitement":
+elif page == "Traitement":
     traitement.app()
 elif page == "Entrainement":
     entrainement.app()

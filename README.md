@@ -22,6 +22,7 @@ RobinBRUNEL_projet_ml/
 │   ├── evaluation.py            # Évaluation du modèle
 │   └── app.py                   # Point d’entrée Streamlit
 ├── setup.py                       # Script d’installation (exécution une seule fois)
+├── run.py                         # Script de lacement de l'aplication 
 ├── requirements.txt               # Dépendances du projet
 ├── README.md                      # Documentation utilisateur
 └── .gitignore                     # Exclusion Git
