@@ -1,114 +1,133 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 
-def app():
-    st.header("🧹 Nettoyage et Prétraitement des données")
-
+def traiter_donnees(
+    path_in="data/vin.csv",
+    path_out="data/donnees_traitees.csv",
+    num_strategy="mean",
+    cat_strategy="most_frequent",
+    fill_value="Inconnu",
+    drop_cols=None,
+    standardize_cols=None,
+    verbose=True
+):
     # Chargement des données
-    df = pd.read_csv("data/vin.csv")
+    df = pd.read_csv(path_in)
+    if verbose:
+        print(f"Chargement des données depuis {path_in} - shape: {df.shape}")
 
-    # Copie originale pour suivi
-    original_df = df.copy()
-
-    st.markdown("### 1. Aperçu initial des données")
-    missing_values = df.isnull().sum()
-    total_missing = missing_values.sum()
-    if total_missing == 0:
-        st.info("✅ Aucune valeur manquante détectée dans le jeu de données.")
-    else:
-        st.warning("⚠️ Données manquantes détectées :")
-        st.write(missing_values[missing_values > 0])
-
-    # Séparation colonnes numériques et catégoriques
+    # Colonnes numériques et catégoriques
     numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
     categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-
-    st.markdown("### 2. Remplissage des valeurs manquantes")
+    if verbose:
+        print(f"Colonnes numériques détectées : {numeric_cols}")
+        print(f"Colonnes catégoriques détectées : {categorical_cols}")
 
     # Imputation numérique
-    if numeric_cols:
-        st.write(f"**Colonnes numériques :** {', '.join(numeric_cols)}")
-        num_strategy = st.selectbox(
-            "Méthode d'imputation des colonnes numériques :",
-            ["Ne rien faire", "Moyenne", "Médiane", "Valeur la plus fréquente"]
-        )
-    else:
-        num_strategy = "Ne rien faire"
+    if num_strategy and numeric_cols:
+        imputer_num = SimpleImputer(strategy=num_strategy)
+        df[numeric_cols] = imputer_num.fit_transform(df[numeric_cols])
+        if verbose:
+            print(f"Imputation numérique réalisée avec la stratégie '{num_strategy}'")
 
     # Imputation catégorique
-    if categorical_cols:
-        st.write(f"**Colonnes catégoriques :** {', '.join(categorical_cols)}")
-        cat_strategy = st.selectbox(
-            "Méthode d'imputation des colonnes catégoriques :",
-            ["Ne rien faire", "Valeur la plus fréquente", "Valeur personnalisée"]
-        )
-        constant_fill_value = None
-        if cat_strategy == "Valeur personnalisée":
-            constant_fill_value = st.text_input("Valeur personnalisée :", value="Inconnu")
-    else:
-        cat_strategy = "Ne rien faire"
-
-    mapping = {
-        "Ne rien faire": None,
-        "Moyenne": "mean",
-        "Médiane": "median",
-        "Valeur la plus fréquente": "most_frequent",
-        "Valeur personnalisée": "constant"
-    }
-
-    if mapping[num_strategy] and df[numeric_cols].isnull().sum().sum() > 0:
-        imputer_num = SimpleImputer(strategy=mapping[num_strategy])
-        df[numeric_cols] = imputer_num.fit_transform(df[numeric_cols])
-        st.success(f"✅ Imputation numérique : {num_strategy}")
-
-    if mapping[cat_strategy] and df[categorical_cols].isnull().sum().sum() > 0:
-        if cat_strategy == "Valeur personnalisée":
-            imputer_cat = SimpleImputer(strategy="constant", fill_value=constant_fill_value)
+    if cat_strategy and categorical_cols:
+        if cat_strategy == "constant":
+            imputer_cat = SimpleImputer(strategy="constant", fill_value=fill_value)
+            if verbose:
+                print(f"Imputation catégorique constante avec la valeur '{fill_value}'")
         else:
-            imputer_cat = SimpleImputer(strategy=mapping[cat_strategy])
+            imputer_cat = SimpleImputer(strategy=cat_strategy)
+            if verbose:
+                print(f"Imputation catégorique réalisée avec la stratégie '{cat_strategy}'")
         df[categorical_cols] = imputer_cat.fit_transform(df[categorical_cols])
-        st.success(f"✅ Imputation catégorique : {cat_strategy}")
 
-    st.markdown("### 3. Suppression de colonnes")
-    cols_to_drop = st.multiselect("Colonnes à supprimer :", df.columns)
-    if cols_to_drop:
-        df = df.drop(columns=cols_to_drop)
-        st.success(f"Colonnes supprimées : {', '.join(cols_to_drop)}")
+    # Suppression de colonnes
+    if drop_cols:
+        # Ne supprimer que les colonnes présentes dans df
+        cols_to_drop = [col for col in drop_cols if col in df.columns]
+        df = df.drop(columns=cols_to_drop, errors='ignore')
+        if verbose:
+            print(f"Colonnes supprimées : {cols_to_drop}")
 
-    st.markdown("### 4. Standardisation")
-    cols_to_standardize = st.multiselect(
-        "Colonnes numériques à standardiser :",
-        [col for col in numeric_cols if col in df.columns]
-    )
+    # Standardisation
+    if standardize_cols:
+        # Ne standardiser que les colonnes numériques présentes dans df
+        cols_to_standardize = [col for col in standardize_cols if col in df.columns]
+        if cols_to_standardize:
+            scaler = StandardScaler()
+            df[cols_to_standardize] = scaler.fit_transform(df[cols_to_standardize])
+            if verbose:
+                print(f"Standardisation appliquée sur les colonnes : {cols_to_standardize}")
+        else:
+            if verbose:
+                print("Aucune colonne valide trouvée pour la standardisation.")
 
-    if cols_to_standardize:
-        scaler = StandardScaler()
-        df_std = df.copy()
-        df_std[cols_to_standardize] = scaler.fit_transform(df_std[cols_to_standardize])
+    # Sauvegarde
+    df.to_csv(path_out, index=False)
+    if verbose:
+        print(f"Données traitées enregistrées dans {path_out} - shape: {df.shape}")
 
-        st.success("✅ Standardisation appliquée.")
-        
-        st.markdown("#### 🔄 Colonnes standardisées")
-        st.dataframe(df_std[cols_to_standardize].head())
+    return df
 
-        st.markdown("#### 📊 Colonnes non standardisées")
-        other_cols = [col for col in df.columns if col not in cols_to_standardize]
-        st.dataframe(df_std[other_cols].head())
 
-        df = df_std  # Mise à jour du DataFrame principal
+def app():
+    st.title("🛠️ Traitement des données")
+
+    st.markdown("""
+    Cette page permet de traiter les données brutes en effectuant :
+    - Imputation des valeurs manquantes
+    - Suppression de colonnes inutiles
+    - Standardisation de certaines colonnes
+    """)
+
+    path_in = st.text_input("Chemin fichier données brutes", "data/vin.csv")
+    path_out = st.text_input("Chemin fichier sauvegarde", "data/donnees_traitees.csv")
+
+    # Charger le dataframe pour récupérer les colonnes (sans crash si fichier absent)
+    try:
+        df = pd.read_csv(path_in)
+        all_columns = df.columns.tolist()
+        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    except Exception as e:
+        st.error(f"Erreur chargement fichier : {e}")
+        all_columns = []
+        numeric_cols = []
+        categorical_cols = []
+
+    num_strategy = st.selectbox("Stratégie imputation numérique", ["mean", "median", "most_frequent", None])
+    cat_strategy = st.selectbox("Stratégie imputation catégorique", ["most_frequent", "constant", None])
+
+    # Si imputation constante sélectionnée, choisir la colonne catégorique pour appliquer la valeur constante
+    fill_value = None
+    if cat_strategy == "constant":
+        if categorical_cols:
+            col_fill = st.selectbox("Colonne catégorique pour imputation constante", categorical_cols)
+        else:
+            col_fill = None
+            st.warning("Aucune colonne catégorique disponible pour imputation constante")
+        fill_value = st.text_input("Valeur pour imputation constante (catégorique)", "Inconnu")
     else:
-        st.info("Aucune colonne sélectionnée pour la standardisation.")
+        col_fill = None  # non utilisée si pas imputation constante
 
-    st.markdown("### 5. Vérification finale des valeurs manquantes")
-    final_missing = df.isnull().sum()
-    total_final_missing = final_missing.sum()
-    if total_final_missing == 0:
-        st.success("✅ Aucune valeur manquante après nettoyage.")
-    else:
-        st.warning("⚠️ Valeurs manquantes restantes :")
-        st.write(final_missing[final_missing > 0])
+    drop_cols = st.multiselect("Colonnes à supprimer", options=all_columns)
+    standardize_cols = st.multiselect("Colonnes à standardiser", options=numeric_cols)
 
-    st.markdown("### 6. Données finales après nettoyage et standardisation")
-    st.dataframe(df.head())
+    if st.button("Lancer le traitement"):
+        # Si imputation constante, on ne traite que la colonne choisie pour la valeur constante
+        # Mais ton code traite toutes les colonnes catégoriques, donc ici on laisse comme avant
+        df_result = traiter_donnees(
+            path_in=path_in,
+            path_out=path_out,
+            num_strategy=num_strategy if num_strategy != "None" else None,
+            cat_strategy=cat_strategy if cat_strategy != "None" else None,
+            fill_value=fill_value if cat_strategy == "constant" else "Inconnu",
+            drop_cols=drop_cols if drop_cols else None,
+            standardize_cols=standardize_cols if standardize_cols else None,
+            verbose=False
+        )
+        st.success(f"Données traitées enregistrées dans `{path_out}`")
+        st.write(df_result.head())

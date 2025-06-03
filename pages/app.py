@@ -2,13 +2,14 @@ import streamlit as st
 import exploration
 import traitement
 import entrainement
+import entrainement_dl
 import evaluation
 
 # Configuration de la page
-st.set_page_config(page_title="🍷 Application Machine Learning - Vin", layout="wide")
+st.set_page_config(page_title="🍇 Application Machine Learning - Vin", layout="wide")
 
 # Titre général
-st.title("🍷 Application Machine Learning - Vin")
+st.title("🍇 Application Machine Learning - Vin")
 
 # Sidebar pour la navigation
 st.sidebar.markdown("## 📚 Navigation")
@@ -17,6 +18,7 @@ page = st.sidebar.radio("Choisissez une page :", [
     "Exploration",
     "Traitement",
     "Entrainement",
+    "Entrainement Deep Learning",
     "Évaluation"
 ])
 
@@ -28,6 +30,7 @@ if page == "Accueil":
     - Exploration des données
     - Traitement
     - Entrainement
+    - Entrainement Deep Learning
     - Évaluation
     """)
 elif page == "Exploration":
@@ -36,6 +39,8 @@ elif page == "Traitement":
     traitement.app()
 elif page == "Entrainement":
     entrainement.app()
+elif page == "Entrainement Deep Learning":
+    entrainement_dl.app()
 elif page == "Évaluation":
     evaluation.app()
 else:
