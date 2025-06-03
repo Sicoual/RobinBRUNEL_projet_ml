@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -15,17 +15,17 @@ import numpy as np
 import joblib
 
 def plot_confusion_matrix(cm, classes, title='Matrice de confusion'):
-    fig, ax = plt.subplots(figsize=(5,4))
+    fig, ax = plt.subplots(figsize=(5, 4))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
     ax.set_xlabel('Prédiction')
-    ax.set_ylabel('Vérité terrain')
+    ax.set_ylabel('Réel')
     ax.set_title(title)
     ax.set_xticklabels(classes, rotation=45)
     ax.set_yticklabels(classes, rotation=0)
     st.pyplot(fig)
 
-def plot_roc_curve(y_test_bin, y_score, n_classes, title='Courbe ROC'):
-    fig, ax = plt.subplots(figsize=(6,5))
+def plot_roc_curve(y_test_bin, y_score, n_classes, class_labels, title='Courbe ROC'):
+    fig, ax = plt.subplots(figsize=(6, 5))
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
@@ -33,7 +33,7 @@ def plot_roc_curve(y_test_bin, y_score, n_classes, title='Courbe ROC'):
         fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_score[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
         ax.plot(fpr[i], tpr[i], lw=2,
-                label=f"Classe {i} (AUC = {roc_auc[i]:.2f})")
+                label=f"{class_labels[i]} (AUC = {roc_auc[i]:.2f})")
     ax.plot([0, 1], [0, 1], 'k--', lw=1)
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
@@ -85,28 +85,39 @@ def app():
         le = LabelEncoder()
         y_enc = le.fit_transform(y)
         st.session_state['label_encoder'] = le
-        class_names = le.classes_
     else:
         y_enc = y
-        class_names = np.unique(y_enc)
         le = None
 
+    class_names = ["Vin équilibré", "Vin amer", "Vin sucré"]
+    label_dict = {0: "Vin équilibré", 1: "Vin amer", 2: "Vin sucré"}
+
+    # --- Paramètres split modifiables par l'utilisateur ---
+    test_size = st.slider("Proportion des données pour le test (test_size)", 0.1, 0.9, 0.5, 0.05)
+    random_state = st.number_input("random_state (graine aléatoire)", min_value=0, max_value=1000, value=50, step=1)
+
+    # Split automatique à chaque changement de paramètre
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y_enc, test_size=0.3, random_state=42, stratify=y_enc)
-    st.write(f"Données divisées en train ({len(X_train)}) / test ({len(X_test)})")
+        X, y_enc, test_size=test_size, random_state=random_state, stratify=y_enc)
+
+    st.write(
+        f"Données divisées en train ({len(X_train)}) / test ({len(X_test)})\n"
+        f"- test_size = {test_size} (proportion des données affectées au test)\n"
+        f"- random_state = {random_state} (graine aléatoire pour reproductibilité)"
+    )
 
     model_options = {
         "Random Forest": make_pipeline(SimpleImputer(strategy='mean'), RandomForestClassifier(random_state=42)),
         "Régression Logistique": make_pipeline(SimpleImputer(strategy='mean'), LogisticRegression(max_iter=2000)),
         "SVM": make_pipeline(SimpleImputer(strategy='mean'), SVC(probability=True))
     }
+
     selected_models = st.multiselect(
         "Modèles à entraîner", list(model_options.keys()), default=list(model_options.keys()))
 
     if st.button("Lancer l'entraînement"):
         results = {}
         feature_names = list(X.columns)
-
         n_classes = len(class_names)
         y_test_bin = label_binarize(y_test, classes=range(n_classes))
 
@@ -141,17 +152,23 @@ def app():
                 "y_pred": y_pred,
                 "y_score": y_score
             }
+
             st.success(f"Modèle {name} entraîné.")
 
-            # Affichage rapide
             st.write(f"### Rapport classification - {name}")
             df_report = pd.DataFrame(report).transpose()
             st.dataframe(df_report.style.apply(
                 lambda row: ['font-weight: bold' if row.name in ['accuracy', 'macro avg', 'weighted avg'] else '' for _ in row],
                 axis=1))
+            
             plot_confusion_matrix(cm, classes=class_names, title=f"Matrice de confusion - {name}")
 
-        # Sauvegarde des modèles, encoder, features
+            if y_score is not None:
+                plot_roc_curve(y_test_bin, y_score, n_classes, class_names, title=f"Courbe ROC - {name}")
+
+            st.write("🔍 Exemple de prédictions :", [label_dict[int(p)] for p in y_pred[:5]])
+
+        # Sauvegarde
         os.makedirs("models", exist_ok=True)
         for name, res in results.items():
             joblib.dump(res['model'], f"models/{name}.joblib")

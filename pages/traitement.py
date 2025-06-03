@@ -11,12 +11,29 @@ def traiter_donnees(
     fill_value="Inconnu",
     drop_cols=None,
     standardize_cols=None,
+    correction_col=None,        # nom de la colonne à corriger
+    correction_old_value=None,  # ancienne valeur à remplacer
+    correction_new_value=None,  # nouvelle valeur
     verbose=True
 ):
     # Chargement des données
     df = pd.read_csv(path_in)
     if verbose:
         print(f"Chargement des données depuis {path_in} - shape: {df.shape}")
+
+    # Correction orthographique personnalisée simple
+    if correction_col and correction_old_value and correction_new_value:
+        if correction_col in df.columns:
+            df[correction_col] = df[correction_col].replace(correction_old_value, correction_new_value)
+            if verbose:
+                print(f"Correction appliquée dans la colonne '{correction_col}': '{correction_old_value}' -> '{correction_new_value}'")
+
+    # Correction orthographique automatique sur la colonne 'target'
+    if 'target' in df.columns:
+        df['target'] = df['target'].str.replace("Vin éuilibré", "Vin équilibré")
+        df['target'] = df['target'].astype(str)  # Forcer la colonne en type string
+        if verbose:
+            print("Correction automatique appliquée sur la colonne 'target' et conversion en string")
 
     # Colonnes numériques et catégoriques
     numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
@@ -46,7 +63,6 @@ def traiter_donnees(
 
     # Suppression de colonnes
     if drop_cols:
-        # Ne supprimer que les colonnes présentes dans df
         cols_to_drop = [col for col in drop_cols if col in df.columns]
         df = df.drop(columns=cols_to_drop, errors='ignore')
         if verbose:
@@ -54,7 +70,6 @@ def traiter_donnees(
 
     # Standardisation
     if standardize_cols:
-        # Ne standardiser que les colonnes numériques présentes dans df
         cols_to_standardize = [col for col in standardize_cols if col in df.columns]
         if cols_to_standardize:
             scaler = StandardScaler()
@@ -71,6 +86,7 @@ def traiter_donnees(
         print(f"Données traitées enregistrées dans {path_out} - shape: {df.shape}")
 
     return df
+
 
 
 def app():
@@ -101,7 +117,6 @@ def app():
     num_strategy = st.selectbox("Stratégie imputation numérique", ["mean", "median", "most_frequent", None])
     cat_strategy = st.selectbox("Stratégie imputation catégorique", ["most_frequent", "constant", None])
 
-    # Si imputation constante sélectionnée, choisir la colonne catégorique pour appliquer la valeur constante
     fill_value = None
     if cat_strategy == "constant":
         if categorical_cols:
@@ -111,14 +126,17 @@ def app():
             st.warning("Aucune colonne catégorique disponible pour imputation constante")
         fill_value = st.text_input("Valeur pour imputation constante (catégorique)", "Inconnu")
     else:
-        col_fill = None  # non utilisée si pas imputation constante
+        col_fill = None
 
     drop_cols = st.multiselect("Colonnes à supprimer", options=all_columns)
     standardize_cols = st.multiselect("Colonnes à standardiser", options=numeric_cols)
 
+    st.markdown("### Correction orthographique personnalisée simple")
+    correction_col = st.text_input("Nom de la colonne à corriger (ex: target)", value="")
+    correction_old_value = st.text_input("Valeur à remplacer", value="")
+    correction_new_value = st.text_input("Nouvelle valeur", value="")
+
     if st.button("Lancer le traitement"):
-        # Si imputation constante, on ne traite que la colonne choisie pour la valeur constante
-        # Mais ton code traite toutes les colonnes catégoriques, donc ici on laisse comme avant
         df_result = traiter_donnees(
             path_in=path_in,
             path_out=path_out,
@@ -127,6 +145,9 @@ def app():
             fill_value=fill_value if cat_strategy == "constant" else "Inconnu",
             drop_cols=drop_cols if drop_cols else None,
             standardize_cols=standardize_cols if standardize_cols else None,
+            correction_col=correction_col if correction_col else None,
+            correction_old_value=correction_old_value if correction_old_value else None,
+            correction_new_value=correction_new_value if correction_new_value else None,
             verbose=False
         )
         st.success(f"Données traitées enregistrées dans `{path_out}`")
