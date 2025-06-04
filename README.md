@@ -33,15 +33,29 @@ RobinBRUNEL_projet_ml/
 
 ## 🚀 Lancer l'application
 
+ **Clonez le repository** :
+
+    ```bash
+    git clone https://github.com/
+    cd 
+    ```
+
+2. **Allez dans le dossier src** :
+
+    ```bash
+    cd src
+
 ### 🔧 1. Installation 
 Exécute ce script avec Python cela installeras toute les dépendance et l'environnement virtuel  (un seule fois) :
 ```bash
 python setup.py
 ```
-Exécute ce script avec Python lanceras l'environnement virtuel et l'aplication steamlit
+### Exécute ce script avec Python lanceras l'environnement virtuel et l'aplication steamlit
 ```bash
 python run.py
-
+```
 ### 🔧 2. Lancement  de steamlit
+```bash
 streamlit run app-ml-vin/app.py
+```
 ### 
