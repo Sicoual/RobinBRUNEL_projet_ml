@@ -11,21 +11,32 @@ Créer une application web interactive illustrant un pipeline complet de machine
 ## Arborescence complète du projet
 ```plaintext
 RobinBRUNEL_projet_ml/
-│
 ├── data/
-│   └── vin.csv                    # Fichier de données à ajouter manuellement
-│
+│   └── vin.csv                    # Jeu de données CSV (à fournir manuellement)
+
+├── models/                       # Modèles ML sauvegardés (joblib / Keras)
+│   ├── logistic_regression.joblib
+│   ├── random_forest.joblib
+│   ├── label_encoder.joblib
+│   ├── scaler.pkl
+│   ├── encoder.pkl
+│   ├── model_dl.h5               # Modèle Deep Learning Keras
+│   └── feature_names.txt
+
 ├── pages/
-│   ├── exploration.py           # Analyse exploratoire
-│   ├── pretraitement.py         # Nettoyage des données
-│   ├── modélisation.py          # Modélisation ML
-│   ├── evaluation.py            # Évaluation du modèle
-│   └── app.py                   # Point d’entrée Streamlit
-├── setup.py                       # Script d’installation (exécution une seule fois)
-├── run.py                         # Script de lacement de l'aplication 
-├── requirements.txt               # Dépendances du projet
-├── README.md                      # Documentation utilisateur
-└── .gitignore                     # Exclusion Git
+│   ├── exploration.py             # Exploration interactive des données
+│   ├── pretraitement.py           # Prétraitement avancé (imputation multiple, suppression)
+│   ├── training.py                # Entraînement ML & DL, sauvegarde des artefacts
+│   ├── evaluation.py              # Évaluation, prédiction avec gestion des valeurs manquantes
+│   ├── deep_learning.py           # Module dédié au Deep Learning (Keras)
+│   └── app.py                    # Point d’entrée principal (navigation Streamlit)
+
+├── setup.py                      # Script d’installation des dépendances
+├── run.py                        # Script de lancement de l’application Streamlit
+├── requirements.txt              # Liste des packages requis
+├── README.md                     # Documentation utilisateur / notes projet
+└── .gitignore                    # Fichiers/dossiers ignorés par Git
+
 ```
 
 ## Contributeurs
@@ -36,7 +47,7 @@ RobinBRUNEL_projet_ml/
  **Clonez le repository** :
 
     ```bash
-    git clone https://github.com/
+    git clone https://github.com/Sicoual/RobinBRUNEL_projet_ml
     cd 
     ```
 
