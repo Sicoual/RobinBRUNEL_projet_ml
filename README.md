@@ -23,6 +23,11 @@ RobinBRUNEL_projet_ml/
 │   ├── model_dl.h5               # Modèle Deep Learning Keras
 │   └── feature_names.txt
 
+├── models_dl/
+│   ├── scaler.pkl
+│   ├── encoder.pkl
+│   ├── model_dl.h5               # Modèle Deep Learning Keras
+
 ├── pages/
 │   ├── exploration.py             # Exploration interactive des données
 │   ├── pretraitement.py           # Prétraitement avancé (imputation multiple, suppression)
@@ -36,7 +41,6 @@ RobinBRUNEL_projet_ml/
 ├── requirements.txt              # Liste des packages requis
 ├── README.md                     # Documentation utilisateur / notes projet
 └── .gitignore                    # Fichiers/dossiers ignorés par Git
-
 ```
 
 ## Contributeurs
