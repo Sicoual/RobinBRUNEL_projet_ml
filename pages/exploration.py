@@ -57,7 +57,11 @@ def app():
 
     if st.checkbox("Afficher le pairplot (⛔ lent si > 5 colonnes)"):
         if len(selected_cols) > 1:
-            pairplot_fig = sns.pairplot(df[selected_cols])
+            if 'target' in df.columns:
+                pairplot_fig = sns.pairplot(df[selected_cols + ['target']], hue='target', palette='Set2')
+            else:
+                st.warning("Colonne 'target' non trouvée pour la coloration.")
+                pairplot_fig = sns.pairplot(df[selected_cols])
             st.pyplot(pairplot_fig)
         else:
             st.warning("Sélectionnez au moins deux colonnes.")
