@@ -60,7 +60,7 @@ RobinBRUNEL_projet_ml/
     ```bash
     cd src
 
-### 🔧 1. Installation 
+### 🔧 Installation et lancement
 Exécute ce script avec Python cela installeras toute les dépendance et l'environnement virtuel  (un seule fois) :
 ```bash
 python setup.py
@@ -69,8 +69,3 @@ python setup.py
 ```bash
 python run.py
 ```
-### 🔧 2. Lancement  de steamlit
-```bash
-streamlit run app-ml-vin/app.py
-```
-### 
